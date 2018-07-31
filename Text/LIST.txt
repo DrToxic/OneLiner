@@ -1,0 +1,3 @@
+place your random lines of text here.
+my application will read them all,
+then choose one at random and write it to OBS.txt
