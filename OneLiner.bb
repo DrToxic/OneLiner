@@ -1,51 +1,76 @@
-wind = CreateWindow("OneLiner",(GadgetWidth(Desktop())/2)-192.5,(GadgetHeight(Desktop())/2)-135,385,270,Desktop(),13)
+Global mainXpos = (GadgetWidth(Desktop())/2)-192
+Global mainYpos = (GadgetHeight(Desktop())/2)-135
+Global mainWidth = 385
+Global mainHeight = 270
 
-menu = WindowMenu(wind)
+Global listFile$ = CurrentDir$()+"LIST.txt"
+Global lineFile$ = CurrentDir$()+"LINE.txt"
+Global frequency = 15
+Global runTimer = False
+
+readConfig()
+
+Global mainWindow = CreateWindow("OneLiner",mainXpos,mainYpos,mainWidth,mainHeight,Desktop(),13+2)
+SetStatusText(mainWindow,"Starting up. . . This will not take long, I promise.")
+
+menu = WindowMenu(mainWindow)
 file = CreateMenu("File",0,menu)
-	CreateMenu("1. Browse for Source List",1,file)
-	CreateMenu("2. Select Destination file",2,file)
-	CreateMenu("Help",3,menu)
-UpdateWindowMenu(wind)
+		CreateMenu("Browse For Source List",10,file)
+		CreateMenu("Select Destination file",11,file)
+		CreateMenu("Save This Configuration",12,file)
+autosave=	CreateMenu("Save On Exit",13,file)
+
+UpdateWindowMenu(mainWindow)
+
+
 ;File Input
-CreateLabel("Input File",10,10,360,40,wind,3)
-tex1 = CreateTextField(12,25,356,20,wind)
-Global infile$ = CurrentDir$()+"Text\LIST.txt"
+lab1 = CreateLabel("Input File",10,10,mainWidth-35,40,mainWindow,3)
+tex1 = CreateTextField(12,25,mainWidth-39,20,mainWindow)
 
 ;File Output
-CreateLabel("Output File",10,60,360,40,wind,3)
-tex2 = CreateTextField(12,75,356,20,wind)
-Global outfile$ = CurrentDir$()+"Text\OBS.txt"
+lab2 = CreateLabel("Output File",10,60,mainWidth-35,40,mainWindow,3)
+tex2 = CreateTextField(12,75,mainWidth-39,20,mainWindow)
 
-CreateLabel("Settings",10,110,360,80,wind,3)
-CreateLabel("Delay (seconds)",12,128,80,20,wind)
-fast = CreateButton("Down",90,125,50,20,wind)
-tex3 = CreateTextField(140,125,50,20,wind)
-slow = CreateButton("Up",190,125,50,20,wind)
+lab3 = CreateLabel("Settings",10,110,mainWidth-35,80,mainWindow,3)
+lab4 = CreateLabel("Delay (seconds)",12,128,80,20,mainWindow)
+fast = CreateButton("Down",90,125,50,20,mainWindow)
+tex3 = CreateTextField(140,125,50,20,mainWindow)
+slow = CreateButton("Up",190,125,50,20,mainWindow)
 
-CreateLabel("Condition",12,150,80,20,wind)
-Global start = CreateButton("Start",190,150,50,20,wind)
-tex4 = CreateTextField(140,150,50,20,wind)
-stopb = CreateButton("Stop",90,150,50,20,wind)
-
-freq = 15 ;number of seconds since the last update
+lab5 = CreateLabel("Condition",12,150,80,20,mainWindow)
+Global start = CreateButton("Start",190,150,50,20,mainWindow)
+tex4 = CreateTextField(140,150,50,20,mainWindow)
+stopb = CreateButton("Stop",90,150,50,20,mainWindow)
 
 ;housekeeping
-SetGadgetText(tex1,infile$)
-SetGadgetText(tex2,outfile$)
-SetGadgetText(tex3,freq)
+SetGadgetLayout(lab1,1,1,1,0)
+SetGadgetLayout(lab2,1,1,1,0)
+SetGadgetLayout(lab3,1,1,1,0)
+SetGadgetLayout(lab4,1,0,1,0)
+SetGadgetLayout(lab5,1,0,1,0)
+SetGadgetLayout(tex1,1,1,1,0)
+SetGadgetLayout(tex2,1,1,1,0)
+SetGadgetLayout(fast,1,0,1,0)
+SetGadgetLayout(slow,1,0,1,0)
+SetGadgetLayout(start,1,0,1,0)
+SetGadgetLayout(stopb,1,0,1,0)
+SetGadgetLayout(tex3,1,0,1,0)
+SetGadgetLayout(tex4,1,0,1,0)
+SetGadgetText(tex1,listFile$)
+SetGadgetText(tex2,lineFile$)
+SetGadgetText(tex3,frequency)
 SetGadgetText(tex4,"Stopped")
 DisableGadget(tex1):DisableGadget(tex2):DisableGadget(start)
-RUN = False
 file1 = False
 file2 = True
 timer = CreateTimer(1)
-If FileSize(infile$)>0 Then
+If FileSize(listFile$)>0 Then
 	file1 = True
-	strings = CountLines(infile$)
+	strings = CountLines()
 Else
 	Notify "Unable to find file, Use the file menu"
 	file1 = False
-	SetGadgetText(tex1,"404, "+infile$)
+	SetGadgetText(tex1,"404, "+listFile$)
 EndIf
 ;and here we go...
 Repeat
@@ -54,68 +79,76 @@ Select WaitEvent()
 	Case $401 ;BUTTONS!
 		Select EventSource()
 			Case fast
-				If freq <6 Then
+				If frequency <6 Then
 					Notify "You really don't want fewer than 5 seconds between writes."
 				Else
-					freq=freq-1
-					SetGadgetText(tex3,freq)
+					frequency=frequency-1
+					SetGadgetText(tex3,frequency)
 				EndIf
 			Case slow
-				freq=freq+1
-				SetGadgetText(tex3,freq)
+				frequency=frequency+1
+				SetGadgetText(tex3,frequency)
 			Case start
-				RUN = True
+				runTimer = True
 				SetGadgetText(tex4,"Running")
 				DisableGadget(start)
 				DisableMenu(file)
-				UpdateWindowMenu(wind)
+				UpdateWindowMenu(mainWindow)
 			Case stopb
-				RUN = False
+				runTimer = False
 				SetGadgetText(tex4,"Stopped")
 				EnableGadget(start)
 				EnableMenu(file)
-				UpdateWindowMenu(wind)
+				UpdateWindowMenu(mainWindow)
 			Default
 		End Select
 	Case $803 ;The exit button.
+		If MenuChecked(autosave) Then writeConfig()
 		Exit
 	Case $1001
-		Select EventData()
-			Case 1
-				infile$ = RequestFile("Choose a file","txt",0,"Strings.txt")
-				If infile$="" Then
-					SetGadgetText(tex1,"No file selected")
-					file1 = False
+		Select EventData() ;The Menus
+			Case 10
+				temp$ = RequestFile("Please select a list of stuff","txt",0,"LIST.txt")
+				If temp$ <>0 Then listFile$ = temp$
+			Case 11
+				temp$ = RequestFile("Please select a file to write the Line to","txt",1,"LINE.txt")
+				If temp$ <>0 Then lineFile$ = temp$
+			Case 12
+				writeConfig()
+			Case 13
+				If MenuChecked(autosave) Then
+					UncheckMenu(autosave)
+					writeConfig()
+					SetStatusText(mainWindow,"AutoSaving Disabled")
 				Else
-					SetGadgetText(tex1,infile$)
-					strings = CountLines(infile$)
-					file1 = True
+					CheckMenu(autosave)
+					SetStatusText(mainWindow,"AutoSaving Enabled")
 				EndIf
-			Case 2
-				outfile$ = RequestFile("Where do we put the output?","txt",1,"OneLiner.txt")
-				If outfile$="" Then
-					SetGadgetText(Tex2,"No file selected")
-					file2 = False
-				Else
-					SetGadgetText(tex2,outfile$)
-					file2 = True
-				EndIf
-			Case 3 Notify "Load an input file, select an output file, configure the delay, click start. a single random line will be written to the output file for OBS to read. It's really not that hard."+Chr$(13)+Chr$(13)+"Oh yeah, if the app is in RUN state, the FILE menu is disabled. lazy way of avoiding user issues."+Chr$(13)+Chr$(13)+"Created by DrToxic. Compiled 2018-07-27 at 01:03AM for Lave Radio."
 		Default
 		End Select
 	Case $4001 ;This shit happens once every second!
 		If sec>0 Then sec=sec-1
-		If RUN = True Then ;ok, only if the RUN switch is turned on..
+		If runTimer = True Then ;ok, only if the RUN switch is turned on..
 			If sec=0 Then
-				sec = freq
-				strings = countlines(infile$)
-				out$ = RandomString$(infile$,strings)
-				fileout = WriteFile(outfile$)
-					WriteLine (fileout,out$)
-				CloseFile(fileout)
+				sec = frequency
+				inFile = ReadFile(listFile$)
+				strings = 0
+				While Not Eof(inFile)
+					myString$ = ReadLine(inFile)
+					strings = strings + 1
+				Wend
+				strings = strings - 1
+				SeekFile(inFile,0)
+				For i = 0 To Rand(0,strings)
+					myString$ = ReadLine(inFile)
+				Next
+				CloseFile(inFile)
+				outFile = WriteFile(lineFile$)
+					WriteLine(outFile,myString$)
+				CloseFile(outFile)
 			EndIf
 		EndIf
-		SetStatusText(wind,sec+" seconds until next write")
+		SetStatusText(mainWindow,sec+" seconds until next write. Previous line: "+myString$)
 	Default
 
 End Select
@@ -123,10 +156,56 @@ End Select
 Forever
 
 
-Function CountLines(infile$)
-	Include "includes\CountLines.bb"
+Function CountLines()
+	file = ReadFile(listFile$)
+		While Not Eof(file)
+			temp = ReadLine(file)
+			count = count + 1
+		Wend
+	CloseFile(file)
+	Return count-1
 End Function
 
-Function RandomString$(infile$,strings)
-	Include "includes\RandomString.bb"
+Function RandomString$(strings)
+	number=Rand(0,strings)
+	listFile = ReadFile(listFile$)
+	For n=0 To number
+		out$ = ReadLine(listFile)
+	Next
+	CloseFile(infile)
+	Return out$
+End Function
+
+Function readConfig()
+config = ReadFile("OneLiner.cfg")
+	If config <> 0 Then
+		While Not Eof(config)
+			temp1$ = ReadLine(config)
+			temp2 = Instr (temp1$," = ")
+			Select Mid$(temp1$,0,temp2)
+				Case "mainXpos" mainXpos = Mid$(temp1$,temp2+3)
+				Case "mainYpos" mainYpos = Mid$(temp1$,temp2+3)
+				Case "mainWidth" mainWidth = Mid$(temp1$,temp2+3)
+				Case "mainHeight" mainHeight = Mid$(temp1$,temp2+3)
+				Case "listFile" listFile$ = Mid$(temp1$,temp2+3)
+				Case "lineFile" lineFile$ = Mid$(temp1$,temp2+3)
+				Case "frequency" frequency = Mid$(temp1$,temp2+3)
+				Case "runTimer" runTImer = Mid$(temp1$,temp2+3)
+			End Select
+		Wend
+	EndIf
+End Function
+
+Function writeConfig()
+	config = WriteFile("OneLiner.cfg")
+		WriteLine(config,"[Application Configuration]")
+		WriteLine(config,"mainXpos = "+GadgetX(mainWindow))
+		WriteLine(config,"mainYpos = "+GadgetY(mainWindow))
+		WriteLine(config,"mainWidth = "+GadgetWidth(mainWindow))
+		WriteLine(config,"mainHeight = "+GadgetHeight(mainWindow))
+		WriteLine(config,"listFile = "+listFile$)
+		WriteLine(config,"lineFile = "+lineFile$)
+		WriteLine(config,"frequency = "+frequency)
+		WriteLine(config,"runTimer = "+runTimer)
+	CloseFile(config)
 End Function
