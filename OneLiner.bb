@@ -35,23 +35,11 @@ tex4 = CreateTextField(140,150,50,20,mainWindow)
 stopb = CreateButton("Stop",90,150,50,20,mainWindow)
 
 ;housekeeping
-SetGadgetLayout(lab1,1,1,1,0)
-SetGadgetLayout(lab2,1,1,1,0)
-SetGadgetLayout(lab3,1,1,1,0)
-SetGadgetLayout(lab4,1,0,1,0)
-SetGadgetLayout(lab5,1,0,1,0)
-SetGadgetLayout(tex1,1,1,1,0) : DisableGadget(tex1)
-SetGadgetLayout(tex2,1,1,1,0) : DisableGadget(tex2)
-SetGadgetLayout(fast,1,0,1,0)
-SetGadgetLayout(slow,1,0,1,0)
-SetGadgetLayout(start,1,0,1,0)
-SetGadgetLayout(stopb,1,0,1,0)
-SetGadgetLayout(tex3,1,0,1,0)
-SetGadgetLayout(tex4,1,0,1,0)
-SetGadgetText(tex1,listFile$)
-SetGadgetText(tex2,lineFile$)
-SetGadgetText(tex3,frequency)
-timer = CreateTimer(1)
+SetGadgetLayout(lab1,1,1,1,0) : SetGadgetLayout(lab2,1,1,1,0) : SetGadgetLayout(lab3,1,1,1,0) : SetGadgetLayout(lab4,1,0,1,0)
+SetGadgetLayout(lab5,1,0,1,0) : SetGadgetLayout(tex1,1,1,1,0) : DisableGadget(tex1) : SetGadgetLayout(tex2,1,1,1,0)
+DisableGadget(tex2) : SetGadgetLayout(fast,1,0,1,0) : SetGadgetLayout(slow,1,0,1,0) : SetGadgetLayout(start,1,0,1,0)
+SetGadgetLayout(stopb,1,0,1,0) : SetGadgetLayout(tex3,1,0,1,0) : SetGadgetLayout(tex4,1,0,1,0) : SetGadgetText(tex1,listFile$)
+SetGadgetText(tex2,lineFile$) : SetGadgetText(tex3,frequency) : timer = CreateTimer(1)
 
 menu = WindowMenu(mainWindow)
 file = CreateMenu("File",0,menu)
@@ -61,23 +49,21 @@ file = CreateMenu("File",0,menu)
 save = CreateMenu("Save Configuration",0,file)
 		CreateMenu("Right Now!",20,save)
 eSave =	CreateMenu("automagically on exit",21,save)
-
 conf = CreateMenu("Configure",0,menu)
 aStart = CreateMenu("Automatically start when loaded?",40,conf)
-
-
 help = CreateMenu("Help",0,menu)
 		CreateMenu("Help me!",30,help)
 		CreateMenu("",0,help)
 		CreateMenu("About OneLiner.",31,help)
-		
 If autoStart = 1 Then
 	runTimer = True : autoStart = True
 	CheckMenu(aStart)
 	SetGadgetText(tex4,"Running")
+	DisableGadget(start)
 Else
 	runTimer = False : autoStart = False
 	SetGadgetText(tex4,"Stopped")
+	EnableGadget(start)
 EndIf
 If saveOnExit = 1 Then
 	saveOnExit = True
@@ -105,13 +91,11 @@ Select WaitEvent()
 				runTimer = True
 				SetGadgetText(tex4,"Running")
 				DisableGadget(start)
-				DisableMenu(file)
 				UpdateWindowMenu(mainWindow)
 			Case stopb
 				runTimer = False
 				SetGadgetText(tex4,"Stopped")
 				EnableGadget(start)
-				EnableMenu(file)
 				UpdateWindowMenu(mainWindow)
 			Default
 		End Select
@@ -122,10 +106,12 @@ Select WaitEvent()
 		Select EventData() ;The Menus
 			Case 10
 				temp$ = RequestFile("Please select a list of stuff","txt",0,"LIST.txt")
-				If temp$ <>0 Then listFile$ = temp$
+				If temp$ <>"" Then listFile$ = temp$
+				SetGadgetText(tex1,listFile$)
 			Case 11
 				temp$ = RequestFile("Please select a file to write the Line to","txt",1,"LINE.txt")
-				If temp$ <>0 Then lineFile$ = temp$
+				If temp$ <>"" Then lineFile$ = temp$
+				SetGadgetText(tex2,lineFile$)
 			Case 20
 				writeConfig()
 			Case 21
