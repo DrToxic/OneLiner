@@ -1,7 +1,7 @@
-Global mainXpos = (GadgetWidth(Desktop())/2)-192
-Global mainYpos = (GadgetHeight(Desktop())/2)-135
 Global mainWidth = 385
 Global mainHeight = 270
+Global mainXpos = (GadgetWidth(Desktop())/2)-mainWidth
+Global mainYpos = (GadgetHeight(Desktop())/2)-mainHeight
 
 Global listFile$ = CurrentDir$()+"LIST.txt"
 Global lineFile$ = CurrentDir$()+"LINE.txt"
