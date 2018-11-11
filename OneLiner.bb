@@ -6,22 +6,14 @@ Global mainHeight = 270
 Global listFile$ = CurrentDir$()+"LIST.txt"
 Global lineFile$ = CurrentDir$()+"LINE.txt"
 Global frequency = 15
+Global autoStart = False
 Global runTimer = False
-
+Global autoSave = True
+Global saveOnExit = True
 readConfig()
-
 Global mainWindow = CreateWindow("OneLiner",mainXpos,mainYpos,mainWidth,mainHeight,Desktop(),13+2)
 SetStatusText(mainWindow,"Starting up. . . This will not take long, I promise.")
-
-menu = WindowMenu(mainWindow)
-file = CreateMenu("File",0,menu)
-		CreateMenu("Browse For Source List",10,file)
-		CreateMenu("Select Destination file",11,file)
-		CreateMenu("Save This Configuration",12,file)
-autosave=	CreateMenu("Save On Exit",13,file)
-
-UpdateWindowMenu(mainWindow)
-
+SetMinWindowSize mainWindow,385,270
 
 ;File Input
 lab1 = CreateLabel("Input File",10,10,mainWidth-35,40,mainWindow,3)
@@ -48,8 +40,8 @@ SetGadgetLayout(lab2,1,1,1,0)
 SetGadgetLayout(lab3,1,1,1,0)
 SetGadgetLayout(lab4,1,0,1,0)
 SetGadgetLayout(lab5,1,0,1,0)
-SetGadgetLayout(tex1,1,1,1,0)
-SetGadgetLayout(tex2,1,1,1,0)
+SetGadgetLayout(tex1,1,1,1,0) : DisableGadget(tex1)
+SetGadgetLayout(tex2,1,1,1,0) : DisableGadget(tex2)
 SetGadgetLayout(fast,1,0,1,0)
 SetGadgetLayout(slow,1,0,1,0)
 SetGadgetLayout(start,1,0,1,0)
@@ -59,22 +51,43 @@ SetGadgetLayout(tex4,1,0,1,0)
 SetGadgetText(tex1,listFile$)
 SetGadgetText(tex2,lineFile$)
 SetGadgetText(tex3,frequency)
-SetGadgetText(tex4,"Stopped")
-DisableGadget(tex1):DisableGadget(tex2):DisableGadget(start)
-file1 = False
-file2 = True
 timer = CreateTimer(1)
-If FileSize(listFile$)>0 Then
-	file1 = True
-	strings = CountLines()
+
+menu = WindowMenu(mainWindow)
+file = CreateMenu("File",0,menu)
+		CreateMenu("Browse For Source List",10,file)
+		CreateMenu("Select Destination file",11,file)
+		CreateMenu("",0,file)
+save = CreateMenu("Save Configuration",0,file)
+		CreateMenu("Right Now!",20,save)
+eSave =	CreateMenu("automagically on exit",21,save)
+
+conf = CreateMenu("Configure",0,menu)
+aStart = CreateMenu("Automatically start when loaded?",40,conf)
+
+
+help = CreateMenu("Help",0,menu)
+		CreateMenu("Help me!",30,help)
+		CreateMenu("",0,help)
+		CreateMenu("About OneLiner.",31,help)
+		
+If autoStart = 1 Then
+	runTimer = True : autoStart = True
+	CheckMenu(aStart)
+	SetGadgetText(tex4,"Running")
 Else
-	Notify "Unable to find file, Use the file menu"
-	file1 = False
-	SetGadgetText(tex1,"404, "+listFile$)
+	runTimer = False : autoStart = False
+	SetGadgetText(tex4,"Stopped")
 EndIf
-;and here we go...
+If saveOnExit = 1 Then
+	saveOnExit = True
+	CheckMenu(eSave)
+Else
+	saveOnExit = False
+EndIf
+UpdateWindowMenu(mainWindow)
+
 Repeat
-If file1 And file2 = True Then EnableGadget(start) Else DisableGadget(start)
 Select WaitEvent()
 	Case $401 ;BUTTONS!
 		Select EventSource()
@@ -103,7 +116,7 @@ Select WaitEvent()
 			Default
 		End Select
 	Case $803 ;The exit button.
-		If MenuChecked(autosave) Then writeConfig()
+		If saveOnExit = True Then writeConfig()
 		Exit
 	Case $1001
 		Select EventData() ;The Menus
@@ -113,19 +126,31 @@ Select WaitEvent()
 			Case 11
 				temp$ = RequestFile("Please select a file to write the Line to","txt",1,"LINE.txt")
 				If temp$ <>0 Then lineFile$ = temp$
-			Case 12
+			Case 20
 				writeConfig()
-			Case 13
-				If MenuChecked(autosave) Then
-					UncheckMenu(autosave)
-					writeConfig()
-					SetStatusText(mainWindow,"AutoSaving Disabled")
+			Case 21
+				If saveOnExit = True Then
+					UncheckMenu(eSave) : saveOnExit = False
+					SetStatusText(mainWindow,"I Will NOT save when I quit.")
 				Else
-					CheckMenu(autosave)
-					SetStatusText(mainWindow,"AutoSaving Enabled")
+					CheckMenu(eSave) : saveOnExit = True
+					SetStatusText(mainWindow,"I Will save when I quit.")
+				EndIf
+			Case 30 ExecFile("OneLiner.chm")
+			Case 31 Notify "OneLiner v1.3 or something like that."+Chr$(13)+"Written by Dr. Toxic for Lave Radio."+Chr$(13)+"Sauce: https://github.com/DrToxic/OneLiner"+Chr$(13)+"Compiled by BlitzPlus IDE V1.47."
+			Case 40
+				If autoStart = True Then
+					autoStart = False
+					UncheckMenu(aStart)
+					SetStatusText(mainWindow,"I will not automatically start when loaded next time (Don't forget to save config!)")
+				Else
+					autoStart = True
+					CheckMenu(aStart)
+					SetStatusText(mainWindow,"I will automatically start when loaded next time. (Don't forget to save config!)")
 				EndIf
 		Default
 		End Select
+		UpdateWindowMenu(mainWindow)
 	Case $4001 ;This shit happens once every second!
 		If sec>0 Then sec=sec-1
 		If runTimer = True Then ;ok, only if the RUN switch is turned on..
@@ -157,6 +182,7 @@ Forever
 
 
 Function CountLines()
+If FileSize(listFile$) >0 Then
 	file = ReadFile(listFile$)
 		While Not Eof(file)
 			temp = ReadLine(file)
@@ -164,6 +190,10 @@ Function CountLines()
 		Wend
 	CloseFile(file)
 	Return count-1
+Else
+	Notify "There doesn't seem to be a list file. Please select a file using the file menu and try again."
+	runTimer = False
+EndIf
 End Function
 
 Function RandomString$(strings)
@@ -190,7 +220,8 @@ config = ReadFile("OneLiner.cfg")
 				Case "listFile" listFile$ = Mid$(temp1$,temp2+3)
 				Case "lineFile" lineFile$ = Mid$(temp1$,temp2+3)
 				Case "frequency" frequency = Mid$(temp1$,temp2+3)
-				Case "runTimer" runTImer = Mid$(temp1$,temp2+3)
+				Case "autoStart" autoStart = Mid$(temp1$,temp2+3)
+				Case "saveOnExit" saveOnExit = Mid$(temp1$,temp2+3)
 			End Select
 		Wend
 	EndIf
@@ -206,6 +237,7 @@ Function writeConfig()
 		WriteLine(config,"listFile = "+listFile$)
 		WriteLine(config,"lineFile = "+lineFile$)
 		WriteLine(config,"frequency = "+frequency)
-		WriteLine(config,"runTimer = "+runTimer)
+		WriteLine(config,"autoStart = "+autoStart)
+		WriteLine(config,"saveOnExit = "+saveOnExit)
 	CloseFile(config)
 End Function
