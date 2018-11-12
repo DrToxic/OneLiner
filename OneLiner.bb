@@ -14,32 +14,26 @@ readConfig()
 Global mainWindow = CreateWindow(appName$,mainXpos,mainYpos,mainWidth,mainHeight,Desktop(),13+2)
 SetStatusText(mainWindow,"Starting up. . . This will not take long, I promise.")
 SetMinWindowSize mainWindow,385,270
-
 ;Draw the gadgets.
 lab1 = CreateLabel("Input File",10,10,mainWidth-35,40,mainWindow,3)
 tex1 = CreateTextField(12,25,mainWidth-39,20,mainWindow)
-
 lab2 = CreateLabel("Output File",10,60,mainWidth-35,40,mainWindow,3)
 tex2 = CreateTextField(12,75,mainWidth-39,20,mainWindow)
-
 lab3 = CreateLabel("Settings",10,110,mainWidth-35,80,mainWindow,3)
 lab4 = CreateLabel("Delay (seconds)",12,128,80,20,mainWindow)
 fast = CreateButton("Down",90,125,50,20,mainWindow)
 tex3 = CreateTextField(140,125,50,20,mainWindow)
 slow = CreateButton("Up",190,125,50,20,mainWindow)
-
 lab5 = CreateLabel("Condition",12,150,80,20,mainWindow)
 Global start = CreateButton("Start",190,150,50,20,mainWindow)
 tex4 = CreateTextField(140,150,50,20,mainWindow)
 stopb = CreateButton("Stop",90,150,50,20,mainWindow)
-
 ;housekeeping
 SetGadgetLayout(lab1,1,1,1,0) : SetGadgetLayout(lab2,1,1,1,0) : SetGadgetLayout(lab3,1,1,1,0) : SetGadgetLayout(lab4,1,0,1,0)
 SetGadgetLayout(lab5,1,0,1,0) : SetGadgetLayout(tex1,1,1,1,0) : DisableGadget(tex1) : SetGadgetLayout(tex2,1,1,1,0)
 DisableGadget(tex2) : SetGadgetLayout(fast,1,0,1,0) : SetGadgetLayout(slow,1,0,1,0) : SetGadgetLayout(start,1,0,1,0)
 SetGadgetLayout(stopb,1,0,1,0) : SetGadgetLayout(tex3,1,0,1,0) : SetGadgetLayout(tex4,1,0,1,0) : SetGadgetText(tex1,listFile$)
 SetGadgetText(tex2,lineFile$) : SetGadgetText(tex3,frequency) : timer = CreateTimer(1)
-
 menu = WindowMenu(mainWindow)
 file = CreateMenu("File",0,menu)
 		CreateMenu("Browse For Source List",10,file)
@@ -185,15 +179,14 @@ Select WaitEvent()
 				EndIf
 			EndIf
 		EndIf
-		If nsec > 0 Then
+		If nsec >0 Then
 			nsec = nsec - 1
 		Else
-			SetStatusText(mainWindow,sec+" Seconds until next write. Previous line: "+myString$)
+			If sec =1 Then SetStatusText(mainWindow,sec+" Second until next write. Previous line: "+myString$)
+			If sec <>1 Then SetStatusText(mainWindow,sec+" Seconds until next write. Previous line: "+myString$)
 		EndIf
 	Default
-
 End Select
-
 Forever
 
 Function readConfig()
