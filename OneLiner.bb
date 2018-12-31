@@ -163,14 +163,36 @@ Select WaitEvent()
 				Else
 					sec = frequency
 					inFile = ReadFile(listFile$)
-					strings = -1
+					strings = -1 : blankSpace = -1 : badLines = -1 : comments = -1
 					While Not Eof(inFile)
-						myString$ = ReadLine(inFile)
-						strings = strings + 1
+						While acceptedLine = False
+							myString$ = ReadLine(inFile)
+							
+							Select Left$(myString,1)
+								Case "" blankSpace = blankSpace + 1
+								Case "#" comments = comments + 1
+								Case "!" badLines = badLines + 1
+								Default acceptedLine = True
+							
+							End Select
+						Wend
+						strings = strings + 1 : acceptedLine = False
 					Wend
 					SeekFile(inFile,0)
 					For i = 0 To Rand(0,strings)
-						myString$ = ReadLine(inFile)
+						acceptedLine = False
+						While acceptedLine = False
+							myString$ = ReadLine(inFile)
+							
+							Select Left$(myString,1)
+								Case ""
+								Case "#"
+								Case "!"
+								Default acceptedLine = True
+							
+							End Select
+						Wend
+						strings = strings + 1 : acceptedLine = False
 					Next
 					CloseFile(inFile)
 					outFile = WriteFile(lineFile$)
